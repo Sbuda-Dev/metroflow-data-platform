@@ -22,7 +22,7 @@ def create_event():
 
 def get_event_file(event_id: str) -> Path:
 
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
 
     return (
         Path("data") 
@@ -85,7 +85,7 @@ def test_saved_event_matches_request():
 
     stored_event = json.loads(expected_file.read_text())
 
-    assert stored_event["event_ttype"] == event_request["event_type"]
+    assert stored_event["event_type"] == event_request["event_type"]
     assert stored_event["source"] == event_request["source"]
     assert stored_event["payload"] == event_request["payload"]
 

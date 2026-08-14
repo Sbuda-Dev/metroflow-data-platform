@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 class BronzeStorage:
 
@@ -12,7 +12,7 @@ class BronzeStorage:
 
     def save (self, event):
 
-        today = datetime.utcnow()
+        today = datetime.now(timezone.utc)
 
         directory = (
             Path("data") 
@@ -23,7 +23,7 @@ class BronzeStorage:
 
         directory.mkdir(parents=True, exist_ok=True)
 
-        filename = self.storage_path / f"{event['event_id']}.json"
+        filename = directory / f"{event['event_id']}.json"
 
         with open (filename, "w") as file:
 
