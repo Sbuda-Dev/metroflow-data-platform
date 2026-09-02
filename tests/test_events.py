@@ -1,9 +1,12 @@
+import json
 
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from ingestion.main import app
 from pathlib import Path
-import json
+from database.connection import SessionLocal
+from database.repositories import GPSEventRepository
+
 
 client = TestClient(app)
 
@@ -91,3 +94,37 @@ def test_saved_event_matches_request():
 
     assert "event_id" in stored_event
     assert "received_at" in stored_event
+
+def test_event_is_saved_to_database():
+
+    response = create_event()
+
+    assert response.status_code == 201
+
+    response_data = response.json()
+
+    event_id = response_data["event_id"]
+
+    session = SessionLocal()
+
+    try:
+
+        repository = GPSEventRepository(session)
+
+        stored_event = repository.find_by_id(event_id)
+
+        assert stored_event is not None
+        assert str(stored_event.event_id) == event_id
+        assert stored_event.event_type == event_request["event_type"]
+        assert stored_event.source == event_request["source"]
+        assert stored_event.bus_id == event_request["payload"]["bus_id"]
+        assert float(stored_event.speed) == event_request["payload"]["speed"]
+
+    finally:
+
+        session.close()
+
+
+
+
+

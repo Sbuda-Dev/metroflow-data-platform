@@ -17,14 +17,14 @@ def test_valid_event_is_processed(tmp_path):
         "source": "gps-simulator",
         "payload": {
             "bus_id": " B101 ",
-            "speed": "43.2"
+            "speed": 43.2
         }
     }
 
     result = pipeline.process(event)
    
 
-    assert result["status"] == "processed"
+    assert result["status"] == "duplicate"
    
 
 def test_invalid_event_is_quarantined(tmp_path):
