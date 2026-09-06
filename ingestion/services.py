@@ -1,18 +1,23 @@
 from datetime import datetime, timezone
-from uuid import uuid4
 from storage.bronze import BronzeStorage
 from .models import EventRequest
 from database.connection import SessionLocal
 from database.models import GPSEvent
 from database.repositories import GPSEventRepository
 
-storage = BronzeStorage()
+
 
 class EventService:
 
+    def __init__(self, storage=None, repository_factory=None, session_factory=SessionLocal):
+
+        self.storage = storage or BronzeStorage()
+        self.repository_factory = repository_factory or GPSEventRepository
+        self.session_factory = session_factory
+
     def create_event(self, event: EventRequest):
 
-        event_id = uuid4()
+        event_id = event.event_id
         received_at = datetime.now(timezone.utc)
 
         stored_event = {
@@ -23,7 +28,7 @@ class EventService:
             "payload": event.payload,
         }
 
-        storage.save(stored_event)
+        self.storage.save(stored_event)
 
         database_event = GPSEvent(
             event_id=event_id,
@@ -34,11 +39,11 @@ class EventService:
             speed=event.payload["speed"]
         )
 
-        session = SessionLocal()
+        session = self.session_factory()
 
         try:
 
-            repository = GPSEventRepository(session)
+            repository = self.repository_factory(session)
             repository.save(database_event)
 
         finally:

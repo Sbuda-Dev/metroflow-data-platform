@@ -22,12 +22,21 @@ class GPSEventRepository:
 
         statement = statement.on_conflict_do_nothing(index_elements=["event_id"]).returning(GPSEvent.event_id)
 
-        result = self.session.execute(statement)
+        try:
 
-        inserted_event_id = result.scalar_one_or_none()
-        self.session.commit()
+            result = self.session.execute(statement)
 
-        return inserted_event_id is not None
+            inserted_event_id = result.scalar_one_or_none()
+            self.session.commit()
+
+            return inserted_event_id is not None
+
+        except Exception:
+
+            self.session.rollback()
+            raise
+
+
 
     def find_by_id(self, event_id: str):
 

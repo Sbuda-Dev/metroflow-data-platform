@@ -6,11 +6,16 @@ from ingestion.main import app
 from pathlib import Path
 from database.connection import SessionLocal
 from database.repositories import GPSEventRepository
+from uuid import uuid4
+from ingestion.models import EventRequest
+from ingestion.services import EventService
+from storage.bronze import BronzeStorage
 
 
 client = TestClient(app)
 
 event_request = {
+        "event_id": str(uuid4()),
         "event_type": "gps",
         "source": "gps-simulator",
         "payload": {
@@ -18,8 +23,22 @@ event_request = {
             "speed":43.2
         }}
 
+def create_event_request():
+
+    return {
+        "event_id": str(uuid4()),
+        "event_type": "gps",
+        "source": "gps-simulator",
+        "payload": {
+            "bus_id": "B101",
+            "speed": 43.2
+        }
+    } 
+
 
 def create_event():
+
+    event_request = create_event_request()
 
     return client.post("/events", json=event_request)
 
@@ -123,6 +142,95 @@ def test_event_is_saved_to_database():
     finally:
 
         session.close()
+
+
+def test_duplicate_event_is_not_inserted_twice():
+
+    event_id = str(uuid4())
+
+    request = {
+        "event_id": event_id,
+        "event_type": "gps",
+        "source": "gps-simulator",
+        "payload": {
+            "bus_id": "B999",
+            "speed": 45.0
+        }
+    }
+
+    first_response = client.post("/events", json=request)
+    second_response = client.post("/events", json=request)
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    session = SessionLocal()
+
+    try:
+
+        repository = GPSEventRepository(session)
+
+        stored_event = repository.find_by_id(event_id)
+
+        assert stored_event is not None
+
+    finally:
+
+        session.close()
+
+
+def test_event_remains_in_bronze_when_database_fails():
+
+    class FailingRepository:
+
+        def __init__(self, session):
+            pass
+
+        def save(self, event):
+            raise Exception("Database unavailable")
+
+
+    storage = BronzeStorage()
+
+    failing_service = EventService(storage=storage, repository_factory=FailingRepository)
+
+    event_id = uuid4()
+
+    request = EventRequest(
+        event_id=event_id,
+        event_type="gps",
+        source="gps-simulator",
+        payload={
+            "bus_id": "B777",
+            "speed": 40.0
+        }
+    )
+
+    try:
+
+        failing_service.create_event(request)
+
+    except Exception:
+        pass
+
+    expected_file = get_event_file(str(event_id))
+
+    assert expected_file.exists()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
