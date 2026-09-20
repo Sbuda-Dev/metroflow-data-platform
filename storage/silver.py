@@ -15,7 +15,7 @@ class SilverStorage:
 
         directory = (
             self.base_path 
-            / f"year{saved_at.year}" 
+            / f"year={saved_at.year}" 
             / f"month={saved_at.month:02d}" 
             / f"day={saved_at.day:02d}")
 

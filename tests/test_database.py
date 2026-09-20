@@ -1,7 +1,7 @@
 from sqlalchemy import text
 from database.connection import engine, SessionLocal
-from database.repositories import GPSEventRepository
-from database.models import GPSEvent
+from database.repositories import GPSEventRepository, BusPerformanceRepository
+from database.models import GPSEvent, BusPerformance
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -124,6 +124,36 @@ def test_duplicate_event_is_not_inserted_twice():
         assert second_insert is False
 
         
+    finally:
+
+        session.close()
+
+def test_can_save_bus_performance():
+
+    performance = {
+        "bus_id": "B101",
+        "event_count": 3,
+        "average_speed": 50.0,
+        "minimum_speed": 40.0,
+        "maximum_speed": 60.0
+    }
+
+    session = SessionLocal()
+
+    try:
+        repository = BusPerformanceRepository(session)
+
+        repository.save(performance)
+
+        stored = repository.find_by_bus_id("B101")
+
+        assert stored is not None
+        assert stored.bus_id == "B101"
+        assert stored.event_count == 3
+        assert float(stored.average_speed) == 50.0
+        assert float(stored.minimum_speed) == 40.0
+        assert float(stored.maximum_speed) == 60.0
+
     finally:
 
         session.close()

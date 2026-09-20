@@ -19,6 +19,17 @@ class GPSEvent(Base):
     bus_id: Mapped[str] = mapped_column(String(50), nullable=False)
     speed: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
 
+class BusPerformance(Base):
+
+    __tablename__ = "bus_performance"
+
+    bus_id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    event_count: Mapped[int] = mapped_column(nullable=False)
+    average_speed: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    minimum_speed: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    maximum_speed: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    
+
 
 
 
