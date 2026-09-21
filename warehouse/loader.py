@@ -1,5 +1,5 @@
-from transformations.gold import calculate_bus_performance
-from database.repositories import BusPerformanceRepository
+from warehouse.validators import validate_bus_performance
+
 
 class WarehouseLoader:
 
@@ -9,6 +9,9 @@ class WarehouseLoader:
     def load(self, performance):
 
         for bus_performance in performance:
+
+            validate_bus_performance(bus_performance)
+
             self.repository.save(bus_performance)
 
         return performance

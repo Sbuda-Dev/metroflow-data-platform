@@ -1,3 +1,5 @@
+import pytest
+
 from warehouse.pipeline import WarehousePipeline
 from database.connection import SessionLocal
 from database.repositories import BusPerformanceRepository
@@ -12,6 +14,14 @@ class FakeLoader:
     def load(self, performance):
         self.loaded = performance
         return performance
+
+class FakeRepository:
+
+    def __init__(self):
+        self.saved = []
+
+    def save(self, performance):
+        self.saved.append(performance)
 
 class FakeWarehousePipeline:
 
@@ -213,3 +223,82 @@ def test_silver_events_can_flow_into_warehouse():
 
     assert warehouse_pipeline.received_events == silver_events
 
+def test_warehouse_loader_rejects_invalid_performance():
+
+    performance = [
+        {
+            "bus_id": "B101",
+            "event_count": 0,
+            "average_speed": 50.0,
+            "minimum_speed": 40.0,
+            "maximum_speed": 60.0
+        }
+    ]
+
+    repository = FakeRepository()
+    loader = WarehouseLoader(repository)
+
+    with pytest.raises(ValueError, match="event_count must be greater than zero"):
+        loader.load(performance)
+
+    assert repository.saved == []
+
+
+def test_multiple_buses_are_loaded_into_warehouse():
+
+    events = [
+        {
+            "bus_id": "B101",
+            "speed": 40.0
+        },
+        {
+            "bus_id": "B101",
+            "speed": 50.0
+        },
+        {
+            "bus_id": "B101",
+            "speed": 60.0
+        },
+        {
+            "bus_id": "B202",
+            "speed": 30.0
+        },
+        {
+            "bus_id": "B202",
+            "speed": 50.0
+        }
+    ]
+
+    session = SessionLocal()
+
+    try:
+
+        repository = BusPerformanceRepository(session)
+
+        loader = WarehouseLoader(repository)
+
+        pipeline = WarehousePipeline(loader)
+
+        result = pipeline.run(events)
+
+        assert len(result) == 2
+
+        b101 = repository.find_by_bus_id("B101")
+        b202 = repository.find_by_bus_id("B202")
+
+        assert b101 is not None
+        assert b202 is not None
+
+        assert b101.event_count == 3
+        assert float(b101.average_speed) == 50.0
+        assert float(b101.minimum_speed) == 40.0
+        assert float(b101.maximum_speed) == 60.0
+
+        assert b202.event_count == 2
+        assert float(b202.average_speed) == 40.0
+        assert float(b202.minimum_speed) == 30.0
+        assert float(b202.maximum_speed) == 50.0
+
+    finally:
+
+        session.close()

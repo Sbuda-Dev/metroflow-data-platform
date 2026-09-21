@@ -1,0 +1,10 @@
+{
+    "event_id": "5d66981e-6c30-4da7-841c-d46d6d1ba5cb",
+    "received_at": "2026-09-21T22:47:10.573455+00:00",
+    "event_type": "gps",
+    "source": "gps-simulator",
+    "payload": {
+        "bus_id": "B101",
+        "speed": 43.2
+    }
+}
